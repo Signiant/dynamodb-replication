@@ -1,0 +1,16 @@
+{
+  "name": "dynamodb-replication",
+  "description": "A lambda backed dynamodb cross region replication solution",
+  "version": "0.0.1",
+  "author": "Jonathan Seed <jonathan.j.seed@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Signiant/dynamodb-replication"
+  },
+  "keywords": [
+    "dynamodb",
+    "lambda",
+    "replication"
+  ],
+  "license": "MIT"
+}
