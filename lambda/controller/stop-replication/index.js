@@ -12,12 +12,14 @@ exports.handler = function(event, context, callback){
   console.error = console.error.bind(null, '[ERROR]');
 
   if(!event.record.UUID){
-    console.error("Error - no UUID in event record");
-    return callback(new Error("Invalid Event Record - UUID property missing from event record"));
+    console.warn("No UUID in event record, assuming event source was never created");
+    return callback();
   }
 
+  //Grab event source uuid from event
   var UUID = event.record.UUID.S;
 
+  //Remove event source mapping
   lambda.deleteEventSourceMapping({ UUID : UUID }, function(err, data){
     if(err){
       if(err.code == "ResourceNotFoundException"){
