@@ -1,5 +1,5 @@
 //  Constants
-var REPLICA_REGION = 'us-west-1'
+var REPLICA_REGION = "{{replicaRegion}}";
 var DELAY = [ 1000, 2000, 4000, 8000, 16000, 32000 ];
 var MAX_DELAY_INDEX = 5;
 var TIMEOUT_PADDING_MS = 2000;
@@ -68,7 +68,7 @@ exports.handler = function(event, context, callback){
         if(RETRYABLE.indexOf(err.code) > -1){
           //Error is retryable, check for / set unprocessed items and warn
           console.warn("Retryable exception encountered :", err.code);
-          if(!data.UnprocessedItems || Object.keys(data.UnprocessedItems).length == 0){
+          if(!data.UnprocessedItems || Object.keys(data.UnprocessedItems).length === 0){
             data.UnprocessedItems = requestItems;
           }
         }else{
@@ -80,14 +80,14 @@ exports.handler = function(event, context, callback){
       }
 
 
-      if(data.UnprocessedItems && Object.keys(data.UnprocessedItems).length != 0){
+      if(data.UnprocessedItems && Object.keys(data.UnprocessedItems).length !== 0){
         //There is unprocessed items, retry
         var delay = DELAY[attempt] || DELAY[MAX_DELAY_INDEX];
 
         if(delay + TIMEOUT_PADDING_MS >= context.getRemainingTimeInMillis()){
           //Lambda function will time out before request completes, exit with error
           console.error("Lambda function timed out after", attempt, "attempts");
-          return callback(new Error("Lambda function timed out after", attempts, "failed attempts"))
+          return callback(new Error("Lambda function timed out after", attempts, "failed attempts"));
         }
 
         //Re-execute this function with unprocessed items after a delay
