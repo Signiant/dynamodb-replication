@@ -55,9 +55,13 @@ exports.handler = function(event, context, callback){
       }
     };
 
+    //If this function is being invoked by prefix initialization, don't overwrite existing items
+    if(event.detail.eventSource == "replication.watcher.init")
+      params.ConditionExpression = "attribute_not_exists (tableName)";
+
     //Add new entry to controller table
     dynamodb.put(params, function(err, data){
-      if(err){
+      if(err && err.code != "ConditionalCheckFailedException"){
         console.error("Failed to add table to controller");
         console.error(err.code, "-", err.message);
         return callback(err);
