@@ -1,7 +1,7 @@
 {
   "name": "dynamodb-replication",
   "description": "A lambda backed dynamodb cross region replication solution",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "author": "Jonathan Seed <jonathan.j.seed@gmail.com>",
   "repository": {
     "type": "git",
