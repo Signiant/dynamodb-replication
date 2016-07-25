@@ -237,32 +237,10 @@
         "Role": { "Fn::GetAtt" : [ "CreateLogGroupRole", "Arn" ] },
         "Code": {
           "ZipFile": {
-            "Fn::Join": ["", [
-              "import cfnresponse \n",
-              "import boto3 \n",
-              "import botocore \n",
-              "import json \n",
-              " \n",
-              "def handler(event, context): \n",
-              "    client = boto3.client('logs') \n",
-              "    responseStatus = cfnresponse.SUCCESS \n",
-              "    responseData = {} \n",
-              " \n",
-              "    if event['RequestType'] == 'Create' or event['RequestType'] == 'Update': \n",
-              "        groupName = '/aws/lambda/%s' % event['ResourceProperties']['FunctionName'] \n",
-              "        try: \n",
-              "            response = client.create_log_group(logGroupName=groupName) \n",
-              "            responseData['LogGroupName'] = groupName \n",
-              " \n",
-              "        except botocore.exceptions.ClientError as e: \n",
-              "            if e.response['Error']['Code'] == 'ResourceAlreadyExistsException': \n",
-              "                responseData['LogGroupName'] = groupName \n",
-              "            else: \n",
-              "                responseData['Error'] = e.response['Error']['Message'] \n",
-              "                responseStatus = cfnresponse.FAILED \n",
-              " \n",
-              "    cfnresponse.send(event, context, responseStatus, responseData) \n"
-            ]]
+            "Fn::Include": {
+              "type": "literal",
+              "location": "custom-resources/log-group.py"
+            }
           }
         }
       }
