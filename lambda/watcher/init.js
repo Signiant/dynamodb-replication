@@ -1,5 +1,5 @@
 // Constants
-var CREATE_FUNCTION = "Replication-Watcher-Create";
+var CREATE_FUNCTION = "{{createFunction}}";
 
 // Dependencies
 var AWS = require('aws-sdk');
