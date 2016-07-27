@@ -1,5 +1,23 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": { "default": "Replication Configuration" },
+          "Parameters": [ "ReplicaRegion" ]
+        },
+        {
+          "Label": { "default": "Replication Resources" },
+          "Parameters": [ "ControllerTableName", "PrefixTableName", "ApiName" ]
+        },
+        {
+          "Label": { "default": "Delay Monitoring" },
+          "Parameters": [ "DelayThreshold", "DelayNotifications", "DelayEndpointProtocol", "DelayEndpoint" ]
+        }
+      ]
+    }
+  },
   "Parameters": {
     "ReplicaRegion": {
       "Type": "String",
@@ -20,6 +38,37 @@
       "Type": "String",
       "Default": "ReplicationApi",
       "Description": "Name of the rest API used to manage replication"
+    },
+    "DelayThreshold": {
+      "Type": "Number",
+      "Description": "How far behind does the replication need to be (in minutes) to trigger the alarm to send a notification?",
+      "Default": 5,
+      "MinValue": 2
+    },
+    "DelayNotifications": {
+      "Type": "String",
+      "Default": "true",
+      "AllowedValues": [ "true", "false" ],
+      "Description": "Set to true if you want to recieve notifications if a replica table falls too behind the master.  If not, set to false and ignore the following two parameters in this group."
+    },
+
+    "DelayEndpointProtocol":{
+      "Type": "String",
+      "Default": "email",
+      "AllowedValues": [ "http", "https", "email", "email-json", "sms", "sqs", "application", "lambda" ],
+      "Description": "The protocol of the notification endpoint."
+    },
+    "DelayEndpoint": {
+      "Type": "String",
+      "Description": "The endpoint to send notifications to."
+    }
+  },
+  "Conditions": {
+    "NotifyOnDelay": {
+      "Fn::Equals": [
+        { "Ref": "DelayNotifications" },
+        "true"
+      ]
     }
   },
   "Resources": {
@@ -718,10 +767,10 @@
         }
       }
     },
-    "WatcherCreateRole": {
+    "WatcherPrefixCreateRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
-        "Path": "/replication/watcher/create/",
+        "Path": "/replication/watcher/prefix/create/",
         "AssumeRolePolicyDocument" : {
           "Version": "2012-10-17",
           "Statement": [{
@@ -732,7 +781,7 @@
         },
         "Policies": [
           {
-            "PolicyName": "ReplicationWatcherCreatePolicy",
+            "PolicyName": "ReplicationWatcherPrefixCreatePolicy",
             "PolicyDocument":  {
               "Version": "2012-10-17",
               "Statement": [
@@ -768,12 +817,12 @@
         ]
       }
     },
-    "WatcherCreateFunction": {
+    "WatcherPrefixCreateFunction": {
       "Type": "AWS::Lambda::Function",
       "Properties": {
-        "FunctionName": "Replication-Watcher-Create",
+        "FunctionName": "Replication-Watcher-Prefix-Create",
         "Description": "Starts replication for new tables matching one of a list of prefixes (stored in dynamodb)",
-        "Role": { "Fn::GetAtt": [ "WatcherCreateRole", "Arn" ] },
+        "Role": { "Fn::GetAtt": [ "WatcherPrefixCreateRole", "Arn" ] },
         "Runtime": "nodejs4.3",
         "Handler": "index.handler",
         "MemorySize": 128,
@@ -782,7 +831,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/watcher/create.min.js",
+              "location": "../lambda/watcher/prefix/create.min.js",
               "context": {
                 "prefixTable": { "Ref": "PrefixTableName" },
                 "controllerTable": { "Ref": "ControllerTableName" }
@@ -792,11 +841,11 @@
         }
       }
     },
-    "WatcherCreateRule": {
+    "WatcherPrefixCreateRule": {
       "Type": "AWS::Events::Rule",
       "Properties": {
-        "Description": "Invoke the replication watcher function when new DynamoDB tables are created",
-        "Name": "Replication-Watcher-Create",
+        "Description": "Invoke the replication watcher prefix create function when new DynamoDB tables are created",
+        "Name": "Replication-Watcher-Prefix-Create",
         "State": "ENABLED",
         "EventPattern": {
           "detail-type": [
@@ -813,25 +862,25 @@
         },
         "Targets": [
           {
-            "Arn": { "Fn::GetAtt": [ "WatcherCreateFunction", "Arn" ] },
-            "Id": "Replication-Watcher-Create"
+            "Arn": { "Fn::GetAtt": [ "WatcherPrefixCreateFunction", "Arn" ] },
+            "Id": "Replication-Watcher-Prefix-Create"
           }
         ]
       }
     },
-    "WatcherCreatePermission": {
+    "WatcherPrefixCreatePermission": {
       "Type": "AWS::Lambda::Permission",
       "Properties": {
         "Action": "lambda:InvokeFunction",
-        "FunctionName": { "Fn::GetAtt": [ "WatcherCreateFunction", "Arn" ] },
+        "FunctionName": { "Fn::GetAtt": [ "WatcherPrefixCreateFunction", "Arn" ] },
         "Principal": "events.amazonaws.com",
-        "SourceArn": { "Fn::GetAtt": [ "WatcherCreateRule", "Arn" ] }
+        "SourceArn": { "Fn::GetAtt": [ "WatcherPrefixCreateRule", "Arn" ] }
       }
     },
-    "WatcherDeleteRole": {
+    "WatcherPrefixDeleteRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
-        "Path": "/replication/watcher/delete/",
+        "Path": "/replication/watcher/prefix/delete/",
         "AssumeRolePolicyDocument" : {
           "Version": "2012-10-17",
           "Statement": [{
@@ -842,7 +891,7 @@
         },
         "Policies": [
           {
-            "PolicyName": "ReplicationWatcherDeletePolicy",
+            "PolicyName": "ReplicationWatcherPrefixDeletePolicy",
             "PolicyDocument":  {
               "Version": "2012-10-17",
               "Statement": [
@@ -870,12 +919,12 @@
         ]
       }
     },
-    "WatcherDeleteFunction": {
+    "WatcherPrefixDeleteFunction": {
       "Type": "AWS::Lambda::Function",
       "Properties": {
-        "FunctionName": "Replication-Watcher-Delete",
+        "FunctionName": "Replication-Watcher-Prefix-Delete",
         "Description": "Stops/removes replication when a source dynamodb table is deleted",
-        "Role": { "Fn::GetAtt": [ "WatcherDeleteRole", "Arn" ] },
+        "Role": { "Fn::GetAtt": [ "WatcherPrefixDeleteRole", "Arn" ] },
         "Runtime": "nodejs4.3",
         "Handler": "index.handler",
         "MemorySize": 128,
@@ -884,7 +933,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/watcher/delete.min.js",
+              "location": "../lambda/watcher/prefix/delete.min.js",
               "context": {
                 "controllerTable": { "Ref": "ControllerTableName" }
               }
@@ -893,11 +942,11 @@
         }
       }
     },
-    "WatcherDeleteRule": {
+    "WatcherPrefixDeleteRule": {
       "Type": "AWS::Events::Rule",
       "Properties": {
-        "Description": "Invoke the replication watcher function when any DynamoDB tables are deleted",
-        "Name": "Replication-Watcher-Delete",
+        "Description": "Invoke the replication watcher prefix delete function when any DynamoDB tables are deleted",
+        "Name": "Replication-Watcher-Prefix-Delete",
         "State": "ENABLED",
         "EventPattern": {
           "detail-type": [
@@ -914,25 +963,25 @@
         },
         "Targets": [
           {
-            "Arn": { "Fn::GetAtt": [ "WatcherDeleteFunction", "Arn" ] },
-            "Id": "Replication-Watcher-Delete"
+            "Arn": { "Fn::GetAtt": [ "WatcherPrefixDeleteFunction", "Arn" ] },
+            "Id": "Replication-Watcher-Prefix-Delete"
           }
         ]
       }
     },
-    "WatcherDeletePermission": {
+    "WatcherPrefixDeletePermission": {
       "Type": "AWS::Lambda::Permission",
       "Properties": {
         "Action": "lambda:InvokeFunction",
-        "FunctionName": { "Fn::GetAtt": [ "WatcherDeleteFunction", "Arn" ] },
+        "FunctionName": { "Fn::GetAtt": [ "WatcherPrefixDeleteFunction", "Arn" ] },
         "Principal": "events.amazonaws.com",
-        "SourceArn": { "Fn::GetAtt": [ "WatcherDeleteRule", "Arn" ] }
+        "SourceArn": { "Fn::GetAtt": [ "WatcherPrefixDeleteRule", "Arn" ] }
       }
     },
-    "WatcherInitRole": {
+    "WatcherPrefixInitRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
-        "Path": "/replication/watcher/init/",
+        "Path": "/replication/watcher/prefix/init/",
         "AssumeRolePolicyDocument" : {
           "Version": "2012-10-17",
           "Statement": [{
@@ -943,7 +992,7 @@
         },
         "Policies": [
           {
-            "PolicyName": "ReplicationWatcherInitPolicy",
+            "PolicyName": "ReplicationWatcherPrefixInitPolicy",
             "PolicyDocument":  {
               "Version": "2012-10-17",
               "Statement": [
@@ -974,7 +1023,7 @@
                     "lambda:InvokeFunction"
                   ],
                   "Effect": "Allow",
-                  "Resource": { "Fn::Join": [ ":", [ "arn", "aws", "lambda", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "function", { "Ref": "WatcherCreateFunction" } ] ] }
+                  "Resource": { "Fn::GetAtt": [ "WatcherPrefixCreateFunction", "Arn" ] }
                 },
                 {
                   "Sid": "ListTables",
@@ -990,12 +1039,12 @@
         ]
       }
     },
-    "WatcherInitFunction": {
+    "WatcherPrefixInitFunction": {
       "Type": "AWS::Lambda::Function",
       "Properties": {
-        "FunctionName": "Replication-Watcher-Init",
+        "FunctionName": "Replication-Watcher-Prefix-Init",
         "Description": "When a new prefix is added to the list, start replication for all existing matching tables",
-        "Role": { "Fn::GetAtt": [ "WatcherInitRole", "Arn" ] },
+        "Role": { "Fn::GetAtt": [ "WatcherPrefixInitRole", "Arn" ] },
         "Runtime": "nodejs4.3",
         "Handler": "index.handler",
         "MemorySize": 128,
@@ -1004,22 +1053,254 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/watcher/init.min.js",
+              "location": "../lambda/watcher/prefix/init.min.js",
               "context": {
-                "createFunction": { "Ref": "WatcherCreateFunction" }
+                "createFunction": { "Ref": "WatcherPrefixCreateFunction" }
               }
             }
           }
         }
       }
     },
-    "WatcherInitEvent": {
+    "WatcherPrefixInitEvent": {
       "Type": "AWS::Lambda::EventSourceMapping",
       "Properties": {
-        "FunctionName": { "Fn::GetAtt": [ "WatcherInitFunction", "Arn" ] },
+        "FunctionName": { "Fn::GetAtt": [ "WatcherPrefixInitFunction", "Arn" ] },
         "EventSourceArn": { "Fn::GetAtt": [ "PrefixTable", "StreamArn" ] },
         "BatchSize": 1,
         "StartingPosition": "TRIM_HORIZON"
+      }
+    },
+    "WatcherAlarmTopic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "DisplayName": "ReplicationAlarmTopic",
+        "TopicName": "ReplicationAlarmTopic",
+        "Subscription": {
+          "Fn::If": [
+            "NotifyOnDelay",
+            [
+              {
+                "Endpoint": { "Ref": "DelayEndpoint" },
+                "Protocol": { "Ref": "DelayEndpointProtocol" }
+              }
+            ],
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+        }
+      }
+    },
+    "WatcherAlarmCreateRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "Path": "/replication/watcher/alarm/create/",
+        "AssumeRolePolicyDocument" : {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Effect": "Allow",
+            "Principal": {"Service": ["lambda.amazonaws.com"]},
+            "Action": ["sts:AssumeRole"]
+          }]
+        },
+        "Policies": [
+          {
+            "PolicyName": "ReplicationWatcherAlarmCreatePolicy",
+            "PolicyDocument":  {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "LambdaLogging",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "arn:aws:logs:*:*:*:*"
+                },
+                {
+                  "Sid": "CreateAlarm",
+                  "Action": [
+                    "cloudwatch:PutMetricAlarm",
+                    "cloudwatch:PutMetricData"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "WatcherAlarmCreateFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": "Replication-Watcher-Alarm-Create",
+        "Description": "Creates an alarm for a replication's MinutesBehindRecord metric",
+        "Role": { "Fn::GetAtt": [ "WatcherAlarmCreateRole", "Arn" ] },
+        "Runtime": "nodejs4.3",
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Timeout": 300,
+        "Code": {
+          "ZipFile": {
+            "Fn::Include": {
+              "type": "literal",
+              "location": "../lambda/watcher/alarm/create.min.js",
+              "context": {
+                "snsTopic": { "Ref": "WatcherAlarmTopic" },
+                "delayThreshold": { "Ref": "DelayThreshold" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "WatcherAlarmCreateRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "Invoke the replication watcher alarm create function when any event source is added to the replicator",
+        "Name": "Replication-Watcher-Alarm-Create",
+        "State": "ENABLED",
+        "EventPattern": {
+          "detail-type": [
+            "AWS API Call via CloudTrail"
+          ],
+          "detail": {
+            "eventSource": [
+              "lambda.amazonaws.com"
+            ],
+            "eventName": [
+              "CreateEventSourceMapping20150331"
+            ],
+            "responseElements": {
+              "functionArn": [
+                { "Fn::GetAtt": [ "ReplicatorFunction", "Arn" ] }
+              ]
+            }
+          }
+        },
+        "Targets": [
+          {
+            "Arn": { "Fn::GetAtt": [ "WatcherAlarmCreateFunction", "Arn" ] },
+            "Id": "Replication-Watcher-Alarm-Create"
+          }
+        ]
+      }
+    },
+    "WatcherAlarmCreatePermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": { "Fn::GetAtt": [ "WatcherAlarmCreateFunction", "Arn" ] },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": { "Fn::GetAtt": [ "WatcherAlarmCreateRule", "Arn" ] }
+      }
+    },
+    "WatcherAlarmDeleteRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "Path": "/replication/watcher/alarm/delete/",
+        "AssumeRolePolicyDocument" : {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Effect": "Allow",
+            "Principal": {"Service": ["lambda.amazonaws.com"]},
+            "Action": ["sts:AssumeRole"]
+          }]
+        },
+        "Policies": [
+          {
+            "PolicyName": "ReplicationWatcherAlarmDeletePolicy",
+            "PolicyDocument":  {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "LambdaLogging",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "arn:aws:logs:*:*:*:*"
+                },
+                {
+                  "Sid": "DeleteAlarm",
+                  "Action": [
+                    "cloudwatch:DeleteAlarms"
+                  ],
+                  "Effect": "Allow",
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "WatcherAlarmDeleteFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": "Replication-Watcher-Alarm-Delete",
+        "Description": "Deletes a replication's MinutsBehindRecord alarm",
+        "Role": { "Fn::GetAtt": [ "WatcherAlarmDeleteRole", "Arn" ] },
+        "Runtime": "nodejs4.3",
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Timeout": 300,
+        "Code": {
+          "ZipFile": {
+            "Fn::Include": {
+              "type": "literal",
+              "location": "../lambda/watcher/alarm/delete.min.js"
+            }
+          }
+        }
+      }
+    },
+    "WatcherAlarmDeleteRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "Invoke the replication watcher alarm delete function when any event source is removed from the replicator",
+        "Name": "Replication-Watcher-Alarm-Delete",
+        "State": "ENABLED",
+        "EventPattern": {
+          "detail-type": [
+            "AWS API Call via CloudTrail"
+          ],
+          "detail": {
+            "eventSource": [
+              "lambda.amazonaws.com"
+            ],
+            "eventName": [
+              "DeleteEventSourceMapping20150331"
+            ],
+            "responseElements": {
+              "functionArn": [
+                { "Fn::GetAtt": [ "ReplicatorFunction", "Arn" ] }
+              ]
+            }
+          }
+        },
+        "Targets": [
+          {
+            "Arn": { "Fn::GetAtt": [ "WatcherAlarmDeleteFunction", "Arn" ] },
+            "Id": "Replication-Watcher-Alarm-Delete"
+          }
+        ]
+      }
+    },
+    "WatcherAlarmDeletePermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": { "Fn::GetAtt": [ "WatcherAlarmDeleteFunction", "Arn" ] },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": { "Fn::GetAtt": [ "WatcherAlarmDeleteRule", "Arn" ] }
       }
     },
     "ReplicationApi": {
