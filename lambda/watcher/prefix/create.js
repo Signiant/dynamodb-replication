@@ -56,8 +56,11 @@ exports.handler = function(event, context, callback){
     };
 
     //If this function is being invoked by prefix initialization, don't overwrite existing items
-    if(event.detail.eventSource == "replication.watcher.init")
-      params.ConditionExpression = "attribute_not_exists (tableName)";
+    if(event.source == "replication.watcher.prefix.init"){
+      params.ConditionExpression = "(attribute_not_exists (tableName)) or (#F = :failed)";
+      params.ExpressionAttributeValues = { ":failed": "FAILED" };
+      params.ExpressionAttributeNames =  { "#F": "state" };
+    }
 
     //Add new entry to controller table
     dynamodb.put(params, function(err, data){
@@ -66,7 +69,6 @@ exports.handler = function(event, context, callback){
         console.error(err.code, "-", err.message);
         return callback(err);
       }
-      console.log("Succesfully added table to controller");
       callback();
     });
 
