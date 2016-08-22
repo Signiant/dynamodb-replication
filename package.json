@@ -12,5 +12,14 @@
     "lambda",
     "replication"
   ],
-  "license": "MIT"
+  "scripts": {
+    "build": "grunt"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "cfn-include": "^0.6.3",
+    "grunt": "^1.0.1",
+    "grunt-contrib-clean": "^1.0.0",
+    "grunt-contrib-uglify": "^1.0.1"
+  }
 }
