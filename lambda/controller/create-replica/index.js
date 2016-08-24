@@ -34,7 +34,8 @@ exports.handler = function(event, context, callback){
         WriteCapacityUnits: data.Table.ProvisionedThroughput.WriteCapacityUnits
       },
       StreamSpecification: {
-        StreamEnabled: false
+        StreamEnabled: true,
+        StreamViewType: 'NEW_AND_OLD_IMAGES'
       }
     };
 
