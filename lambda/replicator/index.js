@@ -68,6 +68,9 @@ exports.handler = function(event, context, callback){
         if(RETRYABLE.indexOf(err.code) > -1){
           //Error is retryable, check for / set unprocessed items and warn
           console.warn("Retryable exception encountered :", err.code);
+          if(data === null || typeof(data) === "undefined"){
+            data = {};
+          }
           if(!data.UnprocessedItems || Object.keys(data.UnprocessedItems).length === 0){
             data.UnprocessedItems = requestItems;
           }
