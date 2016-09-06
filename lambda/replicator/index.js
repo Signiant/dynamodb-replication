@@ -90,6 +90,7 @@ exports.handler = function(event, context, callback){
         if(delay + TIMEOUT_PADDING_MS >= context.getRemainingTimeInMillis()){
           //Lambda function will time out before request completes, exit with error
           console.error("Lambda function timed out after", attempt, "attempts");
+          console.error("Request Items:", JSON.stringify(data.UnprocessedItems));
           return callback(new Error("Lambda function timed out after", attempts, "failed attempts"));
         }
 
@@ -100,6 +101,8 @@ exports.handler = function(event, context, callback){
         //There is no unprocessed items, post metrics and exit succesfully
         console.metric.all("RecordsProcessed", event.Records.length);
         console.metric.none("RecordsWritten", Object.keys(allRecords).length);
+        if(attempt - 1 > 0)
+          console.metric.table("ThrottledRequests", attempt - 1);
         callback();
       }
     });
