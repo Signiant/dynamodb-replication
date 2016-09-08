@@ -1,6 +1,6 @@
 //  Constants
 var REPLICA_REGION = "{{replicaRegion}}";
-var DELAY = [ 1000, 2000, 4000, 8000, 16000, 32000 ];
+var DELAY = [ 100, 200, 400, 800, 1600, 3200 ];
 var MAX_DELAY_INDEX = 5;
 var TIMEOUT_PADDING_MS = 2000;
 var RETRYABLE = [ "ProvisionedThroughputExceededException", "InternalServerError", "ServiceUnavailable" ];
