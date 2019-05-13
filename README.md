@@ -21,4 +21,16 @@ If you're making any changes of your own to the code, you will need to generate 
     $ npm run build
     ```  
 
-The generated template will be output to dist/replication.cfn.json
+The generated template will be output to 
+    ```
+    dist/replication.cfn.json
+    ```
+    
+3. The json file can be deployed to aws through 
+    ```
+    aws cloudformation package     \
+        --template-file dist/replicator.cfn.json \
+        --s3-bucket dynamodb-replication    \
+        --output-template-file packaged-template.yaml     \
+        --profile <aws_profile >
+    ```
