@@ -24,26 +24,38 @@ exports.handler = function(event, context, callback){
       return callback(err);
     }
 
+    var billingMode = 'PROVISIONED';
+    // Check the billing mode of the table
+    if (data.Table.hasOwnProperty('BillingModeSummary') &&
+        data.Table.BillingModeSummary.BillingMode === 'PAY_PER_REQUEST') {
+        billingMode = 'PAY_PER_REQUEST';
+    }
+
     //Construct replica table using source table description
     var params = {
       TableName: data.Table.TableName,
+      BillingMode: billingMode,
       AttributeDefinitions: data.Table.AttributeDefinitions,
       KeySchema: data.Table.KeySchema,
-      ProvisionedThroughput: {
-        ReadCapacityUnits: data.Table.ProvisionedThroughput.ReadCapacityUnits,
-        WriteCapacityUnits: data.Table.ProvisionedThroughput.WriteCapacityUnits
-      },
       StreamSpecification: {
         StreamEnabled: true,
         StreamViewType: 'NEW_AND_OLD_IMAGES'
       }
     };
 
+    // if the billingMode is PROVISIONED, need to add the throughput numbers
+    if (billingMode === 'PROVISIONED') {
+      params.ProvisionedThroughput = {
+        ReadCapacityUnits: data.Table.ProvisionedThroughput.ReadCapacityUnits,
+        WriteCapacityUnits: data.Table.ProvisionedThroughput.WriteCapacityUnits
+      };
+    }
+
     if(data.Table.GlobalSecondaryIndexes){
-      params.GlobalSecondaryIndexes = processIndexes(data.Table.GlobalSecondaryIndexes);
+      params.GlobalSecondaryIndexes = processIndexes(billingMode, data.Table.GlobalSecondaryIndexes);
     }
     if(data.Table.LocalSecondaryIndexes){
-      params.LocalSecondaryIndexes = processIndexes(data.Table.LocalSecondaryIndexes);
+      params.LocalSecondaryIndexes = processIndexes(billingMode, data.Table.LocalSecondaryIndexes);
     }
 
     replicadb.createTable(params, function(err, data){
@@ -73,18 +85,20 @@ exports.handler = function(event, context, callback){
 };
 
 //Helper function - Construct replica table indexes from source index descriptions
-function processIndexes(indexes) {
+function processIndexes(billingMode, indexes) {
   return indexes.reduce(function(newIndexes, index){
     var newIndex = {
       IndexName: index.IndexName,
       KeySchema: index.KeySchema,
       Projection: index.Projection
     };
-    if(index.ProvisionedThroughput) {
-      newIndex.ProvisionedThroughput = {
-        ReadCapacityUnits: index.ProvisionedThroughput.ReadCapacityUnits,
-        WriteCapacityUnits: index.ProvisionedThroughput.WriteCapacityUnits
-      };
+    if (billingMode === 'PROVISIONED') {
+      if(index.ProvisionedThroughput) {
+        newIndex.ProvisionedThroughput = {
+          ReadCapacityUnits: index.ProvisionedThroughput.ReadCapacityUnits,
+          WriteCapacityUnits: index.ProvisionedThroughput.WriteCapacityUnits
+        };
+      }
     }
    newIndexes.push(newIndex);
    return newIndexes;
