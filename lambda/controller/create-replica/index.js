@@ -25,17 +25,16 @@ exports.handler = function(event, context, callback){
     }
 
     var billingMode = 'PROVISIONED';
-
     // Check the billing mode of the table
-    if (data.Table.hasOwnProperty('BillingModeSummary')){
-      if (data.Table.BillingModeSummary.BillingMode == 'PAY_PER_REQUEST') {
-        // console.log('PAY_PER_REQUEST');
+    if (data.Table.hasOwnProperty('BillingModeSummary') &&
+        data.Table.BillingModeSummary.BillingMode === 'PAY_PER_REQUEST') {
         billingMode = 'PAY_PER_REQUEST';
-      }
     }
+
     //Construct replica table using source table description
     var params = {
       TableName: data.Table.TableName,
+      BillingMode: billingMode,
       AttributeDefinitions: data.Table.AttributeDefinitions,
       KeySchema: data.Table.KeySchema,
       StreamSpecification: {
@@ -45,14 +44,11 @@ exports.handler = function(event, context, callback){
     };
 
     // if the billingMode is PROVISIONED, need to add the throughput numbers
-    if (billingMode == 'PROVISIONED') {
+    if (billingMode === 'PROVISIONED') {
       params.ProvisionedThroughput = {
         ReadCapacityUnits: data.Table.ProvisionedThroughput.ReadCapacityUnits,
         WriteCapacityUnits: data.Table.ProvisionedThroughput.WriteCapacityUnits
       };
-    } else {
-      // otherwise set the billingMode to PAY_PER_REQUEST
-      params.BillingMode = 'PAY_PER_REQUEST'
     }
 
     if(data.Table.GlobalSecondaryIndexes){
@@ -96,7 +92,7 @@ function processIndexes(billingMode, indexes) {
       KeySchema: index.KeySchema,
       Projection: index.Projection
     };
-    if (billingMode == 'PROVISIONED') {
+    if (billingMode === 'PROVISIONED') {
       if(index.ProvisionedThroughput) {
         newIndex.ProvisionedThroughput = {
           ReadCapacityUnits: index.ProvisionedThroughput.ReadCapacityUnits,
