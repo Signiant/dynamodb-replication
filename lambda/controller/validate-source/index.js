@@ -1,5 +1,7 @@
 // Constants
 var VIEW_TYPE = "NEW_AND_OLD_IMAGES";
+var GLOBAL_TAG_KEY = "global";
+var GLOBAL_TAG_VALUE = "true";
 
 // Dependencies
 var AWS = require('aws-sdk');
@@ -28,6 +30,19 @@ exports.handler = function(event, context, callback){
         return callback(err);
       }
     }
+
+    sourcedb.listTagsOfResource({ ResourceArn: sourceTable.Table.TableArn }, function(err, data) {
+      if(err){
+        return callback(new Error("Tags could not be listed for source table"));
+      } else {
+        for(const tag of data.Tags) {
+          if(tag.Key === GLOBAL_TAG_KEY && tag.Value === GLOBAL_TAG_VALUE) {
+            console.info("Do not replicate source table because it is a global table");
+            return callback(new Error("Do not replicate global tables"));
+          }
+        }
+      }
+    });
 
     //Check that stream specification is valid
     if(!sourceTable.Table.StreamSpecification || sourceTable.Table.StreamSpecification.StreamEnabled === false || sourceTable.Table.StreamSpecification.StreamViewType != VIEW_TYPE){
