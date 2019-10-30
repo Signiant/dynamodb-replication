@@ -36,11 +36,14 @@ exports.handler = function(event, context, callback){
         return callback(new Error("Tags could not be listed for source table"));
       }
 
-      for(const tag of data.Tags) {
-        if(tag.Key === GLOBAL_TAG_KEY && tag.Value === GLOBAL_TAG_VALUE) {
+
+      var hasGlobalTag = data.Tags.some(function(tag) {
+          return tag.Key === GLOBAL_TAG_KEY && tag.Value === GLOBAL_TAG_VALUE;
+      });
+
+      if(hasGlobalTag) {
           console.info("Do not replicate source table because it is a global table");
           return callback(new Error("Do not replicate global tables"));
-        }
       }
 
       //Check that stream specification is valid
