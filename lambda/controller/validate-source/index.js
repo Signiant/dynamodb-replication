@@ -34,29 +34,29 @@ exports.handler = function(event, context, callback){
     sourcedb.listTagsOfResource({ ResourceArn: sourceTable.Table.TableArn }, function(err, data) {
       if(err){
         return callback(new Error("Tags could not be listed for source table"));
-      } else {
-        for(const tag of data.Tags) {
-          if(tag.Key === GLOBAL_TAG_KEY && tag.Value === GLOBAL_TAG_VALUE) {
-            console.info("Do not replicate source table because it is a global table");
-            return callback(new Error("Do not replicate global tables"));
-          }
+      }
+
+      for(const tag of data.Tags) {
+        if(tag.Key === GLOBAL_TAG_KEY && tag.Value === GLOBAL_TAG_VALUE) {
+          console.info("Do not replicate source table because it is a global table");
+          return callback(new Error("Do not replicate global tables"));
         }
       }
+
+      //Check that stream specification is valid
+      if(!sourceTable.Table.StreamSpecification || sourceTable.Table.StreamSpecification.StreamEnabled === false || sourceTable.Table.StreamSpecification.StreamViewType != VIEW_TYPE){
+        console.error("Invalid stream specification");
+        console.info("Specification:", JSON.stringify(sourceTable.Table.StreamSpecification) || "None");
+        return callback(new Error("Invalid Stream Specification - Streams must be enabled on source table with view type set to " + VIEW_TYPE));
+      }
+
+      //Set keySchema and initialStreamArn properties in controller table item
+      var returnData = {
+        keySchema: JSON.stringify(sourceTable.Table.KeySchema),
+        initialStreamArn: sourceTable.Table.LatestStreamArn
+      };
+      return callback(null, returnData);
     });
-
-    //Check that stream specification is valid
-    if(!sourceTable.Table.StreamSpecification || sourceTable.Table.StreamSpecification.StreamEnabled === false || sourceTable.Table.StreamSpecification.StreamViewType != VIEW_TYPE){
-      console.error("Invalid stream specification");
-      console.info("Specification:", JSON.stringify(sourceTable.Table.StreamSpecification) || "None");
-      return callback(new Error("Invalid Stream Specification - Streams must be enabled on source table with view type set to " + VIEW_TYPE));
-    }
-
-    //Set keySchema and initialStreamArn properties in controller table item
-    var returnData = {
-      keySchema: JSON.stringify(sourceTable.Table.KeySchema),
-      initialStreamArn: sourceTable.Table.LatestStreamArn
-    };
-    return callback(null, returnData);
   });
 };
 
