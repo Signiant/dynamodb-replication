@@ -474,7 +474,8 @@
                 {
                   "Sid": "ValidateSourceTable",
                   "Action": [
-                    "dynamodb:DescribeTable"
+                    "dynamodb:DescribeTable",
+                    "dynamodb:ListTagsOfResource"
                   ],
                   "Effect": "Allow",
                   "Resource": { "Fn::Join": [ ":", [ "arn", "aws", "dynamodb", {"Ref": "AWS::Region"}, { "Ref": "AWS::AccountId" }, "table/*" ] ] }

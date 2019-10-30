@@ -18,7 +18,8 @@ exports.handler = function(event, context, callback){
 
   var tableName = event.table;
 
-  sourcedb.describeTable({TableName: tableName}, function(err, sourceTable){
+  // Wait for the table to be in its final state before trying to list the tags
+  sourcedb.waitFor('tableExists', {TableName: tableName}, function(err, sourceTable){
     if(err){
       if(err.code == "ResourceNotFoundException"){
         console.error("Source table not found");
@@ -33,7 +34,8 @@ exports.handler = function(event, context, callback){
 
     sourcedb.listTagsOfResource({ ResourceArn: sourceTable.Table.TableArn }, function(err, data) {
       if(err){
-        return callback(new Error("Tags could not be listed for source table"));
+        console.error("Unable to list tags for table");
+        return callback(err);
       }
 
 
