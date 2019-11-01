@@ -32,19 +32,19 @@ exports.handler = function(event, context, callback){
       }
     }
 
-    sourcedb.listTagsOfResource({ ResourceArn: sourceTable.Table.TableArn }, function(err, data) {
+    sourcedb.listTagsOfResource({ ResourceArn: sourceTable.Table.TableArn }, function(err, data){
       if(err){
         console.error("Unable to list tags for table");
         return callback(err);
       }
 
 
-      var hasGlobalTag = data.Tags.some(function(tag) {
+      var hasGlobalTag = data.Tags.some(function(tag){
           return tag.Key === GLOBAL_TAG_KEY && tag.Value === GLOBAL_TAG_VALUE;
       });
 
-      if(hasGlobalTag) {
-          console.info("Do not replicate source table because it is a global table");
+      if(hasGlobalTag){
+          console.info("Do not replicate source table "+tableName+" because it is a global table");
           return callback(new Error("Do not replicate global tables"));
       }
 
