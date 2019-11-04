@@ -1,5 +1,7 @@
 // Constants
 var VIEW_TYPE = "NEW_AND_OLD_IMAGES";
+var GLOBAL_TAG_KEY = "global";
+var GLOBAL_TAG_VALUE = "true";
 
 // Dependencies
 var AWS = require('aws-sdk');
@@ -16,7 +18,8 @@ exports.handler = function(event, context, callback){
 
   var tableName = event.table;
 
-  sourcedb.describeTable({TableName: tableName}, function(err, sourceTable){
+  // Wait for the table to be in its final state before trying to list the tags
+  sourcedb.waitFor('tableExists', {TableName: tableName}, function(err, sourceTable){
     if(err){
       if(err.code == "ResourceNotFoundException"){
         console.error("Source table not found");
@@ -29,19 +32,36 @@ exports.handler = function(event, context, callback){
       }
     }
 
-    //Check that stream specification is valid
-    if(!sourceTable.Table.StreamSpecification || sourceTable.Table.StreamSpecification.StreamEnabled === false || sourceTable.Table.StreamSpecification.StreamViewType != VIEW_TYPE){
-      console.error("Invalid stream specification");
-      console.info("Specification:", JSON.stringify(sourceTable.Table.StreamSpecification) || "None");
-      return callback(new Error("Invalid Stream Specification - Streams must be enabled on source table with view type set to " + VIEW_TYPE));
-    }
+    sourcedb.listTagsOfResource({ ResourceArn: sourceTable.Table.TableArn }, function(err, data){
+      if(err){
+        console.error("Unable to list tags for table");
+        return callback(err);
+      }
 
-    //Set keySchema and initialStreamArn properties in controller table item
-    var returnData = {
-      keySchema: JSON.stringify(sourceTable.Table.KeySchema),
-      initialStreamArn: sourceTable.Table.LatestStreamArn
-    };
-    return callback(null, returnData);
+
+      var hasGlobalTag = data.Tags.some(function(tag){
+          return tag.Key === GLOBAL_TAG_KEY && tag.Value === GLOBAL_TAG_VALUE;
+      });
+
+      if(hasGlobalTag){
+          console.info("Do not replicate source table "+tableName+" because it is a global table");
+          return callback(new Error("Do not replicate global tables"));
+      }
+
+      //Check that stream specification is valid
+      if(!sourceTable.Table.StreamSpecification || sourceTable.Table.StreamSpecification.StreamEnabled === false || sourceTable.Table.StreamSpecification.StreamViewType != VIEW_TYPE){
+        console.error("Invalid stream specification");
+        console.info("Specification:", JSON.stringify(sourceTable.Table.StreamSpecification) || "None");
+        return callback(new Error("Invalid Stream Specification - Streams must be enabled on source table with view type set to " + VIEW_TYPE));
+      }
+
+      //Set keySchema and initialStreamArn properties in controller table item
+      var returnData = {
+        keySchema: JSON.stringify(sourceTable.Table.KeySchema),
+        initialStreamArn: sourceTable.Table.LatestStreamArn
+      };
+      return callback(null, returnData);
+    });
   });
 };
 
