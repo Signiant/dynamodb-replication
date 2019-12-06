@@ -14,11 +14,6 @@ const prefixLogger = (prefix) => ({
     error: (...args) => levelLogger.error(`[${prefix}]`, ...args),
 });
 
-const logLevel = (level, args) => {
-    console.log.apply(null, ['[' + level  + ']'].concat(args));
-};
-
-
 const levelLogger = {
     log: (...args) => console.log( '[LOG]', ...args),
     info: (...args) => console.log( '[INFO]', ...args),
