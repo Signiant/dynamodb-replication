@@ -13,25 +13,26 @@ var AWS = require('aws-sdk');
 var lambda = new AWS.Lambda({ apiVersion: '2015-03-31' });
 var dynamodb = new AWS.DynamoDB.DocumentClient({ apiVersion: '2012-08-10' });
 
+const levelLogger = {
+    log: (...args) => console.log( '[LOG]', ...args),
+    info: (...args) => console.log( '[INFO]', ...args),
+    warn: (...args) => console.log( '[WARN]', ...args),
+    error: (...args) => console.log( '[ERROR]', ...args),
+};
+
 // Main handler function
 exports.handler = function(event, context, callback){
 
-  //Bind prefix to log levels
-  console.log = console.log.bind("[LOG]");
-  console.info = console.info.bind("[INFO]");
-  console.warn = console.warn.bind("[WARN]");
-  console.error = console.error.bind("[ERROR]");
-
   //Function expects batch size of 1
   if(!event.Records || !event.Records[0] || event.Records[0].eventSource != 'aws:dynamodb'){
-    console.warn("Invalid event object, no action taken");
+    levelLogger.warn("Invalid event object, no action taken");
     return callback();
   }
 
   event = event.Records[0];
 
   if(event.eventName != 'INSERT' && event.eventName != 'MODIFY'){
-    console.log('No action taken for event', event.eventName, 'on record', JSON.stringify(event));
+    levelLogger.log('No action taken for event', event.eventName, 'on record', JSON.stringify(event));
     return callback();
   }
 
@@ -47,8 +48,8 @@ exports.handler = function(event, context, callback){
     state = event.dynamodb.NewImage.state.S;
     step = event.dynamodb.NewImage.step.S;
   }catch(err){
-    console.warn("Invalid event object, failing step");
-    console.info("Thrown:", err);
+    levelLogger.warn("Invalid event object, failing step");
+    levelLogger.info("Thrown:", err);
     return callback(new Error("Internal Error - Lambda function invoked with invalid event object"));
   }
 
@@ -75,13 +76,13 @@ exports.handler = function(event, context, callback){
 
   if(state != 'PENDING') {
     //If not pending, don't take action
-    console.log('No action taken for item with state', state);
+    levelLogger.log('No action taken for item with state', state);
     return callback();
   }
 
   if(!STEP_MAP[step]) {
     //No action for current step, so it fails
-    console.warn("No action mapped to step", step);
+    levelLogger.warn("No action mapped to step", step);
     var items = {
       step: step,
       state: "FAILED",
@@ -107,7 +108,7 @@ exports.handler = function(event, context, callback){
     if(err){
       if(err.code == "ResourceNotFoundException"){
         //Step is mapped to a lambda function that doesn't exist, fail
-        console.warn("Lambda function", STEP_MAP[step], "(mapped to step " + step + ") does not exist.");
+        levelLogger.warn("Lambda function", STEP_MAP[step], "(mapped to step " + step + ") does not exist.");
         //Simulate a function error, delaying failure until response is processed
         response = {
           FunctionError: true,
@@ -115,8 +116,8 @@ exports.handler = function(event, context, callback){
         };
       }else{
         //General failure, fail this execution to try again
-        console.error("Error invoking lambda function");
-        console.error(err.code, "-", err.message);
+        levelLogger.error("Error invoking lambda function");
+        levelLogger.error(err.code, "-", err.message);
         return callback(err);
       }
     }
@@ -127,7 +128,7 @@ exports.handler = function(event, context, callback){
 
     if(response.FunctionError){
       //Function failed execution, set state to failed, report error message
-      console.error("Function error: ", JSON.stringify(data));
+      levelLogger.error("Function error: ", JSON.stringify(data));
       items.step = step;
       items.state = 'FAILED';
       items.stateMessage = data.errorMessage;
@@ -170,7 +171,7 @@ function updateController(controller, table, items, callback){
 
   dynamodb.update(params, function(err, data){
     if(err){
-      console.error("Failed to write to controller table");
+      levelLogger.error("Failed to write to controller table");
       callback(err);
     }else{
       callback();
@@ -189,7 +190,7 @@ function deleteItem(controller, table, callback){
   };
   dynamodb.delete(params, function(err, data){
     if(err)
-      console.error("Unable to delete item from table");
+      levelLogger.error("Unable to delete item from table");
     return callback(err);
   });
 }

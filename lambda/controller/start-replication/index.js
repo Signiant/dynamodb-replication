@@ -6,18 +6,19 @@ var BATCH_SIZE = 25;
 var AWS = require('aws-sdk');
 var lambda = new AWS.Lambda({apiVersion: '2015-03-31'});
 
+const levelLogger = {
+    log: (...args) => console.log( '[LOG]', ...args),
+    info: (...args) => console.log( '[INFO]', ...args),
+    warn: (...args) => console.log( '[WARN]', ...args),
+    error: (...args) => console.log( '[ERROR]', ...args),
+};
+
 // Main handler function
 exports.handler = function(event, context, callback) {
-
-  //Bind prefix to log levels
-  console.log = console.log.bind(null, '[LOG]');
-  console.info = console.info.bind(null, '[INFO]');
-  console.warn = console.warn.bind(null, '[WARN]');
-  console.error = console.error.bind(null, '[ERROR]');
-
+  
   //Verify initialStreamArn exists in event record
   if (!event.record.initialStreamArn) {
-    console.error("Error - no streamArn provided in event record");
+    levelLogger.error("Error - no streamArn provided in event record");
     return callback(new Error("Invalid Event Record - streamArn property missing from event record"));
   }
 
@@ -32,8 +33,8 @@ exports.handler = function(event, context, callback) {
   //Add event source to replicator function
   lambda.createEventSourceMapping(params, function (err, data) {
     if (err) {
-      console.error(err.code, "-", err.message);
-      console.error("Unable to create event source mapping for lambda function");
+      levelLogger.error(err.code, "-", err.message);
+      levelLogger.error("Unable to create event source mapping for lambda function");
       return callback(err);
     }
 

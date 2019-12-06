@@ -1,6 +1,6 @@
 module.exports = function(grunt) {
   grunt.initConfig({
-    uglify: {
+    terser: {
       dist: {
         files: [
           {
@@ -19,8 +19,8 @@ module.exports = function(grunt) {
   });
 
   //Load plugins for creating and removing minified javascript files
-  grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-clean');
+  grunt.loadNpmTasks('grunt-terser');
 
   //Register task for compiling cfn template
   grunt.registerTask('cfn-include', 'Build cloudformation template using cfn-include', function(){
@@ -46,5 +46,5 @@ module.exports = function(grunt) {
     });
   });
 
-  grunt.registerTask('default', ['uglify', 'cfn-include', 'clean']);
+  grunt.registerTask('default', ['terser', 'cfn-include', 'clean']);
 };

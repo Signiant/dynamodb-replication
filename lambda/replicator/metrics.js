@@ -6,13 +6,20 @@ var zlib = require('zlib');
 var AWS = require('aws-sdk');
 var cloudwatch = new AWS.CloudWatch({apiVersion: '2010-08-01'});
 
+const levelLogger = {
+    log: (...args) => console.log( '[LOG]', ...args),
+    info: (...args) => console.log( '[INFO]', ...args),
+    warn: (...args) => console.log( '[WARN]', ...args),
+    error: (...args) => console.log( '[ERROR]', ...args),
+};
+
 // Handler function
 exports.handler = function(event, context, callback) {
   //Unzip and parse payload
   var payload = new Buffer(event.awslogs.data, 'base64');
   zlib.gunzip(payload, function (err, result) {
     if (err) {
-      console.error("Unable to unzip event");
+      levelLogger.error("Unable to unzip event");
       return callback(err);
     }
 
@@ -51,9 +58,9 @@ function processMetrics(event, callback){
     };
     cloudwatch.putMetricData(params, function (err, data) {
       if (err) {
-        console.error("Unable to write metric data to cloudwatch");
-        console.error(err.name, "-", err.message);
-        console.error("Failed metric data:", JSON.stringify(metricGroup));
+        levelLogger.error("Unable to write metric data to cloudwatch");
+        levelLogger.error(err.name, "-", err.message);
+        levelLogger.error("Failed metric data:", JSON.stringify(metricGroup));
       }
     });
   });

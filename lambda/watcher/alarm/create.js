@@ -8,19 +8,20 @@ var SNS_TOPIC = "{{snsTopic}}";
 var AWS = require('aws-sdk');
 var cloudwatch = new AWS.CloudWatch({apiVersion: '2010-08-01'});
 
+const levelLogger = {
+    log: (...args) => console.log( '[LOG]', ...args),
+    info: (...args) => console.log( '[INFO]', ...args),
+    warn: (...args) => console.log( '[WARN]', ...args),
+    error: (...args) => console.log( '[ERROR]', ...args),
+};
+
 //  Handler function
 exports.handler = function(event, context, callback){
 
-  //Bind prefix to log levels
-  console.log = console.log.bind(null, '[LOG]');
-  console.info = console.info.bind(null, '[INFO]');
-  console.warn = console.warn.bind(null, '[WARN]');
-  console.error = console.error.bind(null, '[ERROR]');
-
   // Don't act unless request was successful
   if(event.detail.errorCode){
-    console.warn("Request returned an error, event source failed to create");
-    console.warn("No action taken");
+    levelLogger.warn("Request returned an error, event source failed to create");
+    levelLogger.warn("No action taken");
     return callback();
   }
 
@@ -28,15 +29,15 @@ exports.handler = function(event, context, callback){
 
   initMetric(tableName, function(err, data){
     if(err){
-      console.error("Error initializing metric for table", tableName);
-      console.error(err.code, "-", err.message);
+      levelLogger.error("Error initializing metric for table", tableName);
+      levelLogger.error(err.code, "-", err.message);
       return callback(err);
     }
 
     createAlarm(tableName, function(err, data){
       if(err){
-        console.error("Error creating alarm for table", tableName);
-        console.error(err.code, "-", err.message);
+        levelLogger.error("Error creating alarm for table", tableName);
+        levelLogger.error(err.code, "-", err.message);
       }
 
       callback(err, data);

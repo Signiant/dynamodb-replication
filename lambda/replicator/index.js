@@ -9,28 +9,40 @@ var RETRYABLE = [ "ProvisionedThroughputExceededException", "InternalServerError
 var AWS = require('aws-sdk');
 var dynamodb = new AWS.DynamoDB({apiVersion: '2012-08-10', region: REPLICA_REGION});
 
+const levelLogger = {
+    log: (...args) => console.log( '[LOG]', ...args),
+    info: (...args) => console.log( '[INFO]', ...args),
+    warn: (...args) => console.log( '[WARN]', ...args),
+    error: (...args) => console.log( '[ERROR]', ...args),
+}
+
+const prefixLogger = (prefix) => ({
+    log: (...args) => levelLogger.log(`[${prefix}]`, ...args),
+    info: (...args) => levelLogger.info(`[${prefix}]`, ...args),
+    warn: (...args) => levelLogger.warn(`[${prefix}]`, ...args),
+    error: (...args) => levelLogger.error(`[${prefix}]`, ...args),
+});
+
+const logMetric = (tableName, context, args) => console.log('[METRIC]', '[' + tableName + ']', context,  ...args);
+
+const metricsLogger = (tableName) => ({
+    all: (...args) => logMetric(tableName, 'ALL', args),
+    table: (...args) => logMetric(tableName, 'TABLE', args),
+    total: (...args) => logMetric(tableName, 'TOTAL', args),
+    none: (...args) => logMetric(tableName, 'NONE', args)
+});
+
 //  Handler function
 exports.handler = function(event, context, callback){
-
   //Pull table name from event source arn
   var tableName = event.Records[0].eventSourceARN.split('/')[1];
-
- //Prefix metrics with metric level and table name
-  console.metric = {
-    all: console.log.bind(null, '[METRIC]', '[' + tableName + ']', 'ALL'),
-    table: console.log.bind(null, '[METRIC]', '[' + tableName + ']', 'TABLE'),
-    total: console.log.bind(null, '[METRIC]', '[' + tableName + ']', 'TOTAL'),
-    none: console.log.bind(null, '[METRIC]', '[' + tableName + ']', 'NONE')
-  };
-  //Prefix log messages with log level
-  console.log = console.log.bind(null, '[LOG]', '[' + tableName + ']');
-  console.info = console.info.bind(null, '[INFO]', '[' + tableName + ']');
-  console.error = console.error.bind(null, '[ERROR]', '[' + tableName + ']');
-  console.warn = console.warn.bind(null, '[WARN]', '[' + tableName + ']');
+  
+  const theMetricsLogger = metricsLogger(tableName);
+  const tableLogger = prefixLogger(tableName);
 
   //Calculate and post metric for minutes behind record (rounded)
   var latestRecordTime= event.Records[event.Records.length - 1].dynamodb.ApproximateCreationDateTime * 1000;
-  console.metric.table("MinutesBehindRecord", Math.round((Date.now() - latestRecordTime) / 60000));
+  theMetricsLogger.table("MinutesBehindRecord", Math.round((Date.now() - latestRecordTime) / 60000));
 
   //For each unique table item, get the latest record
   var allRecords = event.Records.reduce(function(allRecords, record) {
@@ -53,9 +65,9 @@ exports.handler = function(event, context, callback){
         requestItems.push({ DeleteRequest: { Key: record.dynamodb.Keys } });
         break;
       default:
-        console.warn("Unknown event type '" + record.eventName + "', record will not be processed");
-        console.warn("Record data :", JSON.stringify(record));
-        console.metric.total("UnknownEventTypes");
+        tableLogger.warn("Unknown event type '" + record.eventName + "', record will not be processed");
+        tableLogger.warn("Record data :", JSON.stringify(record));
+        theMetricsLogger.total("UnknownEventTypes");
         break;
     }
     return requestItems;
@@ -67,7 +79,7 @@ exports.handler = function(event, context, callback){
       if(err){
         if(RETRYABLE.indexOf(err.code) > -1){
           //Error is retryable, check for / set unprocessed items and warn
-          console.warn("Retryable exception encountered :", err.code);
+          tableLogger.warn("Retryable exception encountered :", err.code);
           if(data === null || typeof(data) === "undefined"){
             data = {};
           }
@@ -76,8 +88,8 @@ exports.handler = function(event, context, callback){
           }
         }else{
           //Error is not retryable, exit with error
-          console.error("Non-retryable exception encountered\n", err.code, "-", err.message);
-          console.error("Request Items:", JSON.stringify(requestItems));
+          tableLogger.error("Non-retryable exception encountered\n", err.code, "-", err.message);
+          tableLogger.error("Request Items:", JSON.stringify(requestItems));
           return callback(err);
         }
       }
@@ -89,20 +101,20 @@ exports.handler = function(event, context, callback){
 
         if(delay + TIMEOUT_PADDING_MS >= context.getRemainingTimeInMillis()){
           //Lambda function will time out before request completes, exit with error
-          console.error("Lambda function timed out after", attempt, "attempts");
-          console.error("Request Items:", JSON.stringify(data.UnprocessedItems));
+          tableLogger.error("Lambda function timed out after", attempt, "attempts");
+          tableLogger.error("Request Items:", JSON.stringify(data.UnprocessedItems));
           return callback(new Error("Lambda function timed out after", attempts, "failed attempts"));
         }
 
         //Re-execute this function with unprocessed items after a delay
-        console.log("Retrying batch write item request with unprocessed items in " + delay + " seconds");
+        tableLogger.log("Retrying batch write item request with unprocessed items in " + delay + " seconds");
         setTimeout(batchWrite, delay, data.UnprocessedItems, ++attempt);
       }else{
         //There is no unprocessed items, post metrics and exit succesfully
-        console.metric.all("RecordsProcessed", event.Records.length);
-        console.metric.none("RecordsWritten", Object.keys(allRecords).length);
+        theMetricsLogger.all("RecordsProcessed", event.Records.length);
+        theMetricsLogger.none("RecordsWritten", Object.keys(allRecords).length);
         if(attempt - 1 > 0)
-          console.metric.table("ThrottledRequests", attempt - 1);
+          theMetricsLogger.table("ThrottledRequests", attempt - 1);
         callback();
       }
     });

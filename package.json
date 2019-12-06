@@ -3,6 +3,9 @@
   "description": "A lambda backed dynamodb cross region replication solution",
   "version": "1.0.0",
   "author": "Jonathan Seed <jonathan.j.seed@gmail.com>",
+  "engines": {
+    "node": ">=10"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/Signiant/dynamodb-replication"
@@ -20,6 +23,6 @@
     "cfn-include": "^0.6.3",
     "grunt": "^1.0.1",
     "grunt-contrib-clean": "^1.0.0",
-    "grunt-contrib-uglify": "^1.0.1"
+    "grunt-terser": "^1.0.0"
   }
 }

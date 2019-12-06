@@ -5,18 +5,19 @@ var CONTROLLER_TABLE = "{{controllerTable}}";
 var AWS = require('aws-sdk');
 var dynamodb = new AWS.DynamoDB({apiVersion: '2012-08-10'});
 
+const levelLogger = {
+    log: (...args) => console.log( '[LOG]', ...args),
+    info: (...args) => console.log( '[INFO]', ...args),
+    warn: (...args) => console.log( '[WARN]', ...args),
+    error: (...args) => console.log( '[ERROR]', ...args),
+};
+
 // Main handler function
 exports.handler = function(event, context, callback){
 
-  //Bind prefix to log levels
-  console.log = console.log.bind(null, '[LOG]');
-  console.info = console.info.bind(null, '[INFO]');
-  console.warn = console.warn.bind(null, '[WARN]');
-  console.error = console.error.bind(null, '[ERROR]');
-
   //Ensure event was successful
   if(event.detail.errorCode){
-    console.warn("Table failed to delete, no action taken");
+    levelLogger.warn("Table failed to delete, no action taken");
     return callback();
   }
 
@@ -44,16 +45,16 @@ exports.handler = function(event, context, callback){
   dynamodb.updateItem(params, function(err, data){
     if(err){
       if(err.code == "ConditionalCheckFailedException"){
-        console.log("Table", table, "not found in controller, no action taken");
+        levelLogger.log("Table", table, "not found in controller, no action taken");
         return callback();
       }else{
-        console.error("Unable to update item");
-        console.error(err.code, "-", err.message);
+        levelLogger.error("Unable to update item");
+        levelLogger.error(err.code, "-", err.message);
         return callback(err);
       }
     }
 
-    console.log("Removal of replication for table", table, "initialized");
+    levelLogger.log("Removal of replication for table", table, "initialized");
     return callback();
   });
 };

@@ -2,17 +2,18 @@
 var AWS = require('aws-sdk');
 var lambda = new AWS.Lambda({apiVersion: '2015-03-31'});
 
+const levelLogger = {
+    log: (...args) => console.log( '[LOG]', ...args),
+    info: (...args) => console.log( '[INFO]', ...args),
+    warn: (...args) => console.log( '[WARN]', ...args),
+    error: (...args) => console.log( '[ERROR]', ...args),
+};
+
 // Main handler function
 exports.handler = function(event, context, callback){
 
-  //Bind prefix to log levels
-  console.log = console.log.bind(null, '[LOG]');
-  console.info = console.info.bind(null, '[INFO]');
-  console.warn = console.warn.bind(null, '[WARN]');
-  console.error = console.error.bind(null, '[ERROR]');
-
   if(!event.record.UUID){
-    console.warn("No UUID in event record, assuming event source was never created");
+    levelLogger.warn("No UUID in event record, assuming event source was never created");
     return callback();
   }
 
@@ -23,12 +24,12 @@ exports.handler = function(event, context, callback){
   lambda.deleteEventSourceMapping({ UUID : UUID }, function(err, data){
     if(err){
       if(err.code == "ResourceNotFoundException"){
-        console.warn("EventSourceMapping not found, no replication to stop");
-        console.warn("Marking COMPLETE");
+        levelLogger.warn("EventSourceMapping not found, no replication to stop");
+        levelLogger.warn("Marking COMPLETE");
         return callback();
       }else{
-        console.error("Failed to delete event source mapping");
-        console.error(err.code, "-", err.message);
+        levelLogger.error("Failed to delete event source mapping");
+        levelLogger.error(err.code, "-", err.message);
         return callback(err);
       }
     }

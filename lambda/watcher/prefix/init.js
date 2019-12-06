@@ -3,18 +3,19 @@ var AWS = require('aws-sdk');
 var dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10' });
 var cloudwatch = new AWS.CloudWatchEvents({ apiVersion: '2015-10-07' });
 
+const levelLogger = {
+    log: (...args) => console.log( '[LOG]', ...args),
+    info: (...args) => console.log( '[INFO]', ...args),
+    warn: (...args) => console.log( '[WARN]', ...args),
+    error: (...args) => console.log( '[ERROR]', ...args),
+};
+
 // Handler Function
 exports.handler = function(event, context, callback){
 
-  //Prefix log messages with log level
-  console.log = console.log.bind(null, '[LOG]');
-  console.info = console.info.bind(null, '[INFO]');
-  console.error = console.error.bind(null, '[ERROR]');
-  console.warn = console.warn.bind(null, '[WARN]');
-
   //Only act on new prefixes
   if(event.Records[0].eventName !== "INSERT"){
-    console.warn("No action taken for event of type", event.Records[0].eventName);
+    levelLogger.warn("No action taken for event of type", event.Records[0].eventName);
     return callback();
   }
   //Grab Prefix from event
@@ -22,8 +23,8 @@ exports.handler = function(event, context, callback){
 
   listPrefixedTables(prefix, function(err, tables){
     if(err){
-      console.error("Unable to list tables");
-      console.error(err.code, "-", err.message);
+      levelLogger.error("Unable to list tables");
+      levelLogger.error(err.code, "-", err.message);
       return callback(err);
     }
 
@@ -44,8 +45,8 @@ function createReplications(tables, callback){
   (function putEvents(events){
     cloudwatch.putEvents({ Entries: events }, function(err, data){
       if(err){
-        console.error("Unable to post custom CloudWatch events")
-        console.error(err.code, "-", err.message);
+        levelLogger.error("Unable to post custom CloudWatch events")
+        levelLogger.error(err.code, "-", err.message);
         return callback(err);
       }
 
@@ -53,13 +54,13 @@ function createReplications(tables, callback){
       if(data.FailedEntryCount > 0){
         var failedEntries = [];
         for(var i = 0; i < data.Entries.length; i++){
-          console.warn(data.FailedEntryCount, " failed entries");
+          levelLogger.warn(data.FailedEntryCount, " failed entries");
           if(data.Entries[i].ErrorCode){
-            console.warn(data.Entries[i].ErrorCode, "-", data.Entris[i].ErrorMessage);
+            levelLogger.warn(data.Entries[i].ErrorCode, "-", data.Entris[i].ErrorMessage);
             failedEntries.push(events[i]);
           }
         }
-        console.warn("Retrying put for", data.FailedEntryCount, "entries");
+        levelLogger.warn("Retrying put for", data.FailedEntryCount, "entries");
         putEvents(failedEntries);
       }else{
         // Loop until no batches are left to be processed
