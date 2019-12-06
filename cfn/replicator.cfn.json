@@ -147,7 +147,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/replicator/index.js",
+              "location": "../lambda/replicator/index.min.js",
               "context": {
                 "replicaRegion": { "Ref": "ReplicaRegion" }
               }
@@ -210,7 +210,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/replicator/metrics.js"
+              "location": "../lambda/replicator/metrics.min.js"
             }
           }
         }
@@ -420,7 +420,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/controller/index.js",
+              "location": "../lambda/controller/index.min.js",
               "context": {
                 "replicatorFunction": { "Fn::GetAtt": [ "ReplicatorFunction", "Arn" ] },
                 "validateSourceFunction": { "Fn::GetAtt": [ "ValidateSourceFunction", "Arn" ] },
@@ -500,7 +500,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/controller/validate-source/index.js"
+              "location": "../lambda/controller/validate-source/index.min.js"
             }
           }
         }
@@ -562,7 +562,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/controller/validate-replica/index.js",
+              "location": "../lambda/controller/validate-replica/index.min.js",
               "context": {
                 "replicaRegion": { "Ref": "ReplicaRegion" }
               }
@@ -635,7 +635,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/controller/create-replica/index.js",
+              "location": "../lambda/controller/create-replica/index.min.js",
               "context": {
                 "replicaRegion": { "Ref": "ReplicaRegion" }
               }
@@ -700,7 +700,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/controller/start-replication/index.js"
+              "location": "../lambda/controller/start-replication/index.min.js"
             }
           }
         }
@@ -762,7 +762,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/controller/stop-replication/index.js"
+              "location": "../lambda/controller/stop-replication/index.min.js"
             }
           }
         }
@@ -832,7 +832,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/watcher/prefix/create.js",
+              "location": "../lambda/watcher/prefix/create.min.js",
               "context": {
                 "prefixTable": { "Ref": "PrefixTableName" },
                 "controllerTable": { "Ref": "ControllerTableName" }
@@ -935,7 +935,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/watcher/prefix/delete.js",
+              "location": "../lambda/watcher/prefix/delete.min.js",
               "context": {
                 "controllerTable": { "Ref": "ControllerTableName" }
               }
@@ -1055,7 +1055,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/watcher/prefix/init.js"
+              "location": "../lambda/watcher/prefix/init.min.js"
             }
           }
         }
@@ -1148,7 +1148,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/watcher/alarm/create.js",
+              "location": "../lambda/watcher/alarm/create.min.js",
               "context": {
                 "snsTopic": { "Ref": "WatcherAlarmTopic" },
                 "delayThreshold": { "Ref": "DelayThreshold" }
@@ -1255,7 +1255,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/watcher/alarm/delete.js"
+              "location": "../lambda/watcher/alarm/delete.min.js"
             }
           }
         }
@@ -1979,7 +1979,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/api/tables/get.js"
+              "location": "../lambda/api/tables/get.min.js"
             }
           }
         }
@@ -2075,7 +2075,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/api/tables/replications/post.js"
+              "location": "../lambda/api/tables/replications/post.min.js"
             }
           }
         }
@@ -2154,7 +2154,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/api/tables/replications/delete.js"
+              "location": "../lambda/api/tables/replications/delete.min.js"
             }
           }
         }
@@ -2233,7 +2233,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/api/tables/prefixes/post.js"
+              "location": "../lambda/api/tables/prefixes/post.min.js"
             }
           }
         }
@@ -2312,7 +2312,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/api/tables/prefixes/delete.js"
+              "location": "../lambda/api/tables/prefixes/delete.min.js"
             }
           }
         }
@@ -2391,7 +2391,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/api/tables/prefixes/post.js"
+              "location": "../lambda/api/tables/prefixes/post.min.js"
             }
           }
         }
@@ -2470,7 +2470,7 @@
           "ZipFile": {
             "Fn::Include": {
               "type": "literal",
-              "location": "../lambda/api/metrics/get.js"
+              "location": "../lambda/api/metrics/get.min.js"
             }
           }
         }
