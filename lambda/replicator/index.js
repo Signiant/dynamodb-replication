@@ -8,7 +8,6 @@ var RETRYABLE = [ "ProvisionedThroughputExceededException", "InternalServerError
 // Dependencies
 var AWS = require('aws-sdk');
 var dynamodb = new AWS.DynamoDB({apiVersion: '2012-08-10', region: REPLICA_REGION});
-const logger = require('../logger');
 
 const levelLogger = {
     log: (...args) => console.log( '[LOG]', ...args),
