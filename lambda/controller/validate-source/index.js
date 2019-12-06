@@ -7,34 +7,29 @@ var GLOBAL_TAG_VALUE = "true";
 var AWS = require('aws-sdk');
 var sourcedb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: process.env.AWS_REGION });
 
+const { levelLogger } = require('../../logger');
+
 // Main handler function
 exports.handler = function(event, context, callback){
-
-  //Bind prefix to log levels
-  console.log = console.log.bind(null, '[LOG]');
-  console.info = console.info.bind(null, '[INFO]');
-  console.warn = console.warn.bind(null, '[WARN]');
-  console.error = console.error.bind(null, '[ERROR]');
-
   var tableName = event.table;
 
   // Wait for the table to be in its final state before trying to list the tags
   sourcedb.waitFor('tableExists', {TableName: tableName}, function(err, sourceTable){
     if(err){
       if(err.code == "ResourceNotFoundException"){
-        console.error("Source table not found");
-        console.error(err.code, "-", err.message);
+        levelLogger.error("Source table not found");
+        levelLogger.error(err.code, "-", err.message);
         return callback(new Error("Source table could not be found"));
       }else{
-        console.error("Unable to describe table");
-        console.error(err.code, "-", err.message);
+        levelLogger.error("Unable to describe table");
+        levelLogger.error(err.code, "-", err.message);
         return callback(err);
       }
     }
 
     sourcedb.listTagsOfResource({ ResourceArn: sourceTable.Table.TableArn }, function(err, data){
       if(err){
-        console.error("Unable to list tags for table");
+        levelLogger.error("Unable to list tags for table");
         return callback(err);
       }
 
@@ -44,14 +39,14 @@ exports.handler = function(event, context, callback){
       });
 
       if(hasGlobalTag){
-          console.info("Do not replicate source table "+tableName+" because it is a global table");
+          levelLogger.info("Do not replicate source table "+tableName+" because it is a global table");
           return callback(new Error("Do not replicate global tables"));
       }
 
       //Check that stream specification is valid
       if(!sourceTable.Table.StreamSpecification || sourceTable.Table.StreamSpecification.StreamEnabled === false || sourceTable.Table.StreamSpecification.StreamViewType != VIEW_TYPE){
-        console.error("Invalid stream specification");
-        console.info("Specification:", JSON.stringify(sourceTable.Table.StreamSpecification) || "None");
+        levelLogger.error("Invalid stream specification");
+        levelLogger.info("Specification:", JSON.stringify(sourceTable.Table.StreamSpecification) || "None");
         return callback(new Error("Invalid Stream Specification - Streams must be enabled on source table with view type set to " + VIEW_TYPE));
       }
 

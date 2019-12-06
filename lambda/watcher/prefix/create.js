@@ -6,19 +6,13 @@ var CONTROLLER_TABLE = "{{controllerTable}}";
 var AWS = require('aws-sdk');
 var dynamodb = new AWS.DynamoDB.DocumentClient({apiVersion: '2012-08-10'});
 
+const { levelLogger } = require('../../logger');
+
 // Main handler function
 exports.handler = function(event, context, callback){
-
-  //Bind prefix to log levels
-  console.log = console.log.bind(null, '[LOG]');
-  console.info = console.info.bind(null, '[INFO]');
-  console.warn = console.warn.bind(null, '[WARN]');
-  console.error = console.error.bind(null, '[ERROR]');
-
-
   //Ensure event was successful
   if(event.detail.errorCode){
-    console.warn("Source table failed to create, no action taken");
+    levelLogger.warn("Source table failed to create, no action taken");
     return callback();
   }
 
@@ -28,20 +22,20 @@ exports.handler = function(event, context, callback){
   // Retrieve prefix list from dynamodb
   dynamodb.scan({ TableName: PREFIX_TABLE }, function(err, data){
     if(err){
-      console.error("Failed to retrieve prefix list from dynamodb");
-      console.error(err.name, "-", err.message);
+      levelLogger.error("Failed to retrieve prefix list from dynamodb");
+      levelLogger.error(err.name, "-", err.message);
       return callback(err);
     }
 
     //Verify prefixes exist in list
     if(!data.Items || data.Items.length === 0){
-      console.log("No prefixes in table");
+      levelLogger.log("No prefixes in table");
       return callback();
     }
 
     //Check if table name uses any of the listed prefixes
     if (!data.Items.some(function(pre){ return table.startsWith(pre.prefix);}) ){
-      console.log("No action taken for table", table);
+      levelLogger.log("No action taken for table", table);
       return callback();
     }
 
@@ -65,8 +59,8 @@ exports.handler = function(event, context, callback){
     //Add new entry to controller table
     dynamodb.put(params, function(err, data){
       if(err && err.code != "ConditionalCheckFailedException"){
-        console.error("Failed to add table to controller");
-        console.error(err.code, "-", err.message);
+        levelLogger.error("Failed to add table to controller");
+        levelLogger.error(err.code, "-", err.message);
         return callback(err);
       }
       callback();

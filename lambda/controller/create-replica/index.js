@@ -6,21 +6,17 @@ var AWS = require('aws-sdk');
 var sourcedb = new AWS.DynamoDB({apiVersion: '2012-08-10', region: process.env.AWS_REGION });
 var replicadb = new AWS.DynamoDB({apiVersion: '2012-08-10', region: REPLICA_REGION});
 
+const { levelLogger } = require('../../logger');
+
 // Main handler function;
 exports.handler = function(event, context, callback){
-
-  //Bind prefix to log levels
-  console.log = console.log.bind(null, '[LOG]');
-  console.info = console.info.bind(null, '[INFO]');
-  console.warn = console.warn.bind(null, '[WARN]');
-  console.error = console.error.bind(null, '[ERROR]');
 
   var table = event.table;
 
   sourcedb.describeTable({ TableName: table }, function(err, data){
     if(err){
-      console.error("Unable to describe table");
-      console.error(err.code, "-", err.message);
+      levelLogger.error("Unable to describe table");
+      levelLogger.error(err.code, "-", err.message);
       return callback(err);
     }
 
@@ -63,17 +59,17 @@ exports.handler = function(event, context, callback){
 
         if(err.name == "LimitExceededException" || err.name == "InternalServerError"){
           //Retry-able, retry step
-          console.warn("Retryable exception encountered -", err.name + ", setting table status to RETRYING");
+          levelLogger.warn("Retryable exception encountered -", err.name + ", setting table status to RETRYING");
           return callback(null, { status: "RETRYING", stateMessage: "Retryable exception " + err.name + " encountered" });
         }else if(err.name == 'ResourceInUseException'){
           //Replica table already exists, fail step
-          console.error("Table already exists in replica region");
-          console.error(err.name, "-", err.message);
+          levelLogger.error("Table already exists in replica region");
+          levelLogger.error(err.name, "-", err.message);
           return callback(err);
         }else{
           //Non retry-able, fail step
-          console.error("Non-retryable exception encountered");
-          console.error(err.name, "-", err.message);
+          levelLogger.error("Non-retryable exception encountered");
+          levelLogger.error(err.name, "-", err.message);
           return callback(err);
         }
       }
