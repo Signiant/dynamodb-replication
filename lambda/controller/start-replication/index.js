@@ -6,7 +6,12 @@ var BATCH_SIZE = 25;
 var AWS = require('aws-sdk');
 var lambda = new AWS.Lambda({apiVersion: '2015-03-31'});
 
-const { levelLogger } = require('../../logger');
+const levelLogger = {
+    log: (...args) => console.log( '[LOG]', ...args),
+    info: (...args) => console.log( '[INFO]', ...args),
+    warn: (...args) => console.log( '[WARN]', ...args),
+    error: (...args) => console.log( '[ERROR]', ...args),
+};
 
 // Main handler function
 exports.handler = function(event, context, callback) {

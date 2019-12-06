@@ -5,7 +5,12 @@ var REPLICA_REGION = "{{replicaRegion}}";
 var AWS = require('aws-sdk');
 var replicadb = new AWS.DynamoDB({apiVersion: '2012-08-10', region: REPLICA_REGION});
 
-const { levelLogger } = require('../../logger');
+const levelLogger = {
+    log: (...args) => console.log( '[LOG]', ...args),
+    info: (...args) => console.log( '[INFO]', ...args),
+    warn: (...args) => console.log( '[WARN]', ...args),
+    error: (...args) => console.log( '[ERROR]', ...args),
+};
 
 // Main handler function
 exports.handler = function(event, context, callback){

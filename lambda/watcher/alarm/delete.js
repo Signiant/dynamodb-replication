@@ -2,7 +2,12 @@
 var AWS = require('aws-sdk');
 var cloudwatch = new AWS.CloudWatch({apiVersion: '2010-08-01'});
 
-const { levelLogger } = require('../../logger');
+const levelLogger = {
+    log: (...args) => console.log( '[LOG]', ...args),
+    info: (...args) => console.log( '[INFO]', ...args),
+    warn: (...args) => console.log( '[WARN]', ...args),
+    error: (...args) => console.log( '[ERROR]', ...args),
+};
 
 // Handler function
 exports.handler = function(event, context, callback){

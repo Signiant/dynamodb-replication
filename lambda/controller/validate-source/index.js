@@ -7,7 +7,12 @@ var GLOBAL_TAG_VALUE = "true";
 var AWS = require('aws-sdk');
 var sourcedb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: process.env.AWS_REGION });
 
-const { levelLogger } = require('../../logger');
+const levelLogger = {
+    log: (...args) => console.log( '[LOG]', ...args),
+    info: (...args) => console.log( '[INFO]', ...args),
+    warn: (...args) => console.log( '[WARN]', ...args),
+    error: (...args) => console.log( '[ERROR]', ...args),
+};
 
 // Main handler function
 exports.handler = function(event, context, callback){
