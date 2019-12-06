@@ -2,7 +2,19 @@
 var AWS = require('aws-sdk');
 var dynamodb = new AWS.DynamoDB({apiVersion: "2012-08-10"});
 
-const logger = require('../../../logger');
+const levelLogger = {
+    log: (...args) => console.log( '[LOG]', ...args),
+    info: (...args) => console.log( '[INFO]', ...args),
+    warn: (...args) => console.log( '[WARN]', ...args),
+    error: (...args) => console.log( '[ERROR]', ...args),
+}
+
+const prefixLogger = (prefix) => ({
+    log: (...args) => levelLogger.log(`[${prefix}]`, ...args),
+    info: (...args) => levelLogger.info(`[${prefix}]`, ...args),
+    warn: (...args) => levelLogger.warn(`[${prefix}]`, ...args),
+    error: (...args) => levelLogger.error(`[${prefix}]`, ...args),
+});
 
 // Main handler function
 exports.handler = function(event, context, callback){
@@ -10,7 +22,7 @@ exports.handler = function(event, context, callback){
   var prefix = event.prefix;
   var prefixTable = event.prefixTable;
   
-  const prefixLogger = logger.prefixLogger(prefix);
+  const prefixLogger = prefixLogger(prefix);
 
   // Delete prefix from table
   var params = {

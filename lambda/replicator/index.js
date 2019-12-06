@@ -10,13 +10,36 @@ var AWS = require('aws-sdk');
 var dynamodb = new AWS.DynamoDB({apiVersion: '2012-08-10', region: REPLICA_REGION});
 const logger = require('../logger');
 
+const levelLogger = {
+    log: (...args) => console.log( '[LOG]', ...args),
+    info: (...args) => console.log( '[INFO]', ...args),
+    warn: (...args) => console.log( '[WARN]', ...args),
+    error: (...args) => console.log( '[ERROR]', ...args),
+}
+
+const prefixLogger = (prefix) => ({
+    log: (...args) => levelLogger.log(`[${prefix}]`, ...args),
+    info: (...args) => levelLogger.info(`[${prefix}]`, ...args),
+    warn: (...args) => levelLogger.warn(`[${prefix}]`, ...args),
+    error: (...args) => levelLogger.error(`[${prefix}]`, ...args),
+});
+
+const logMetric = (tableName, context, args) => console.log('[METRIC]', '[' + tableName + ']', context,  ...args);
+
+const metricsLogger = (tableName) => ({
+    all: (...args) => logMetric(tableName, 'ALL', args),
+    table: (...args) => logMetric(tableName, 'TABLE', args),
+    total: (...args) => logMetric(tableName, 'TOTAL', args),
+    none: (...args) => logMetric(tableName, 'NONE', args)
+});
+
 //  Handler function
 exports.handler = function(event, context, callback){
   //Pull table name from event source arn
   var tableName = event.Records[0].eventSourceARN.split('/')[1];
   
-  const metricsLogger = logger.metricsLogger(tableName);
-  const tableLogger = logger.prefixLogger(tableName);
+  const metricsLogger = metricsLogger(tableName);
+  const tableLogger = prefixLogger(tableName);
 
   //Calculate and post metric for minutes behind record (rounded)
   var latestRecordTime= event.Records[event.Records.length - 1].dynamodb.ApproximateCreationDateTime * 1000;
