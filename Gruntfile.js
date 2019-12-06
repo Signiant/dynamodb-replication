@@ -46,5 +46,5 @@ module.exports = function(grunt) {
     });
   });
 
-  grunt.registerTask('default', ['uglify', 'cfn-include', 'clean']);
+  grunt.registerTask('default', ['cfn-include', 'clean']);
 };
