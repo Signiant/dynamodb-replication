@@ -37,12 +37,12 @@ exports.handler = function(event, context, callback){
   //Pull table name from event source arn
   var tableName = event.Records[0].eventSourceARN.split('/')[1];
   
-  const metricsLogger = metricsLogger(tableName);
+  const theMetricsLogger = metricsLogger(tableName);
   const tableLogger = prefixLogger(tableName);
 
   //Calculate and post metric for minutes behind record (rounded)
   var latestRecordTime= event.Records[event.Records.length - 1].dynamodb.ApproximateCreationDateTime * 1000;
-  metricsLogger.table("MinutesBehindRecord", Math.round((Date.now() - latestRecordTime) / 60000));
+  theMetricsLogger.table("MinutesBehindRecord", Math.round((Date.now() - latestRecordTime) / 60000));
 
   //For each unique table item, get the latest record
   var allRecords = event.Records.reduce(function(allRecords, record) {
@@ -67,7 +67,7 @@ exports.handler = function(event, context, callback){
       default:
         tableLogger.warn("Unknown event type '" + record.eventName + "', record will not be processed");
         tableLogger.warn("Record data :", JSON.stringify(record));
-        metricsLogger.total("UnknownEventTypes");
+        theMetricsLogger.total("UnknownEventTypes");
         break;
     }
     return requestItems;
@@ -111,10 +111,10 @@ exports.handler = function(event, context, callback){
         setTimeout(batchWrite, delay, data.UnprocessedItems, ++attempt);
       }else{
         //There is no unprocessed items, post metrics and exit succesfully
-        metricsLogger.all("RecordsProcessed", event.Records.length);
-        metricsLogger.none("RecordsWritten", Object.keys(allRecords).length);
+        theMetricsLogger.all("RecordsProcessed", event.Records.length);
+        theMetricsLogger.none("RecordsWritten", Object.keys(allRecords).length);
         if(attempt - 1 > 0)
-          metricsLogger.table("ThrottledRequests", attempt - 1);
+          theMetricsLogger.table("ThrottledRequests", attempt - 1);
         callback();
       }
     });
